@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     }
 
     // after successful validation trigger the event
-    pusher.trigger("message-channel", "send-message", newMessage)
+    await pusher.trigger("message-channel", "send-message", newMessage)
 
     user.messages.push(newMessage as Message)
     await user.save()

@@ -35,6 +35,7 @@ const Page = () => {
       email: "",
       password: "",
     },
+    mode: 'onChange'
   });
 
   useEffect(() => {

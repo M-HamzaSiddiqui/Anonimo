@@ -94,7 +94,7 @@ const Page = () => {
   }, [session, setValue, fetchAcceptMessage, fetchMessage]);
 
   useEffect(() => {
-    const pusherClient = new PusherClient(String(process.env.PUSHER_KEY), {
+    const pusherClient = new PusherClient(String(process.env.NEXT_PUBLIC_PUSHER_KEY), {
       cluster: "ap2",
     });
 
