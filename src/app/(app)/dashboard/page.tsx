@@ -18,7 +18,7 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 import PusherClient from "pusher-js";
 
-const page = () => {
+const Page = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSwitchLoading, setIsSwitchLoading] = useState(false);
@@ -135,8 +135,11 @@ const page = () => {
   };
 
   const { username } = (session?.user as User) || "";
-
-  const baseUrl = `${window.location.protocol}//${window.location.host}`;
+  let baseUrl = ""
+  if(typeof window === 'undefined') {
+    baseUrl = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+  } else
+  baseUrl = `${window.location.protocol}//${window.location.host}`;
   const profileUrl = `${baseUrl}/u/${username}`;
 
   const copyToClipboard = () => {
@@ -212,4 +215,4 @@ const page = () => {
   );
 };
 
-export default page;
+export default Page;

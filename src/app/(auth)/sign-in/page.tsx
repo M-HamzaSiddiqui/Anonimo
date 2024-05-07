@@ -14,7 +14,7 @@ import * as z from 'zod'
 import "../../../app/globals.css";
 import { Loader2 } from 'lucide-react';
 
-const page = () => {
+const Page = () => {
   const[isSubmitting, setIsSubmitting] = useState(false)
   const router = useRouter()
 
@@ -103,4 +103,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page
