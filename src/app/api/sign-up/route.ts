@@ -68,8 +68,10 @@ export async function POST(request: Request) {
         isVerified: false,
         isAcceptingMessage: true,
         messages: [],
+        questions: [],
       });
       await newUser.save();
+      console.log(newUser)
     }
 
     // send verification email

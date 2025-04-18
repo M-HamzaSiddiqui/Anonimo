@@ -2,8 +2,10 @@
 
 import React, { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+
 import {
   Form,
   FormControl,
@@ -49,6 +51,7 @@ const PublicMessagingComponent = ({
     resolver: zodResolver(messageSchema),
     defaultValues: {
       content: "",
+      ratings: [1],
     },
     mode: "onChange",
   });
@@ -56,17 +59,20 @@ const PublicMessagingComponent = ({
   const onSubmit = async (data: z.infer<typeof messageSchema>) => {
     try {
       const content = data.content;
-      const response = await axios.post("/api/send-message", { username, content });
-      toast({
-        description: "Your message was send successfully",
+      const response = await axios.post("/api/send-message", {
+        username,
+        content,
       });
-      console.log('response')
-      form.setValue('content', "")
+      toast({
+        description: "Your message was sent successfully",
+      });
+      console.log("response");
+      form.setValue("content", "");
     } catch (error: any) {
-      const axiosError = error as AxiosError<ApiResponse>
+      const axiosError = error as AxiosError<ApiResponse>;
       toast({
         title: "Error",
-        description: axiosError.response?.data.message  ,
+        description: axiosError.response?.data.message,
         variant: "destructive",
       });
     }
@@ -81,7 +87,9 @@ const PublicMessagingComponent = ({
   return (
     <div className="my-8 mx-4 h-full overflow-auto md:mx-8 lg:mx-auto p-6 bg-white rounded w-full max-w-6xl flex flex-col gap-3">
       <div className=" p-2">
-        <h1 className=" text-4xl font-bold mb-6 text-center">Public Profile Link</h1>
+        <h1 className=" text-4xl font-bold mb-6 text-center">
+          Public Profile Link
+        </h1>
         <div className="flex flex-col">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -91,19 +99,59 @@ const PublicMessagingComponent = ({
                 render={({ field }) => (
                   <FormItem>
                     <div className="text-center mx-auto  max-w-screen-md">
-                    <div className=" mb-2 pl-2 text-start">
-                    <FormLabel>Send Anonymous Message to {username}</FormLabel>
+                      <div className=" mb-2 pl-2 text-start">
+                        <FormLabel>
+                          Send Anonymous Message to {username}
+                        </FormLabel>
+                      </div>
+                      <FormControl>
+                        <Input
+                          className=" pb-16 pt-4 text-md max-w-screen-md inline-block"
+                          placeholder="Write your anonymous message here"
+                          {...field}
+                        />
+                      </FormControl>
+                      <div className="  mt-2 pl-2 text-start">
+                        <FormMessage />
+                      </div>
                     </div>
-                    <FormControl>
-                      <Input
-                        className=" pb-16 pt-4 text-md max-w-screen-md inline-block"
-                        placeholder="Write your anonymous message here"
-                        {...field}
-                      />
-                    </FormControl>
-                    <div className="  mt-2 pl-2 text-start">
-                    <FormMessage />
-                    </div>
+                  </FormItem>
+                )}
+              />
+              <FormField
+                name="ratings"
+                control={form.control}
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="text-center mx-auto max-w-screen-md">
+                      <div className="mb-2 pl-2 text-start">
+                        <FormLabel>Question 1</FormLabel>
+                      </div>
+                      <FormControl>
+                        <Controller
+                          name="ratings"
+                          control={form.control}
+                          render={({ field: { value, onChange } }) => (
+                            <>
+                              <Slider
+                                value={value} // This should be an array
+                                onValueChange={(newValue) => onChange(newValue)}
+                                min={1}
+                                max={10}
+                              />
+                              <div className="text-center mt-2">
+                                <span>
+                                  Rating:{" "}
+                                  {value.length > 0 ? value[0] : "No rating"}
+                                </span>
+                              </div>
+                            </>
+                          )}
+                        />
+                      </FormControl>
+                      <div className="mt-2 pl-2 text-start">
+                        <FormMessage />
+                      </div>
                     </div>
                   </FormItem>
                 )}
@@ -125,7 +173,9 @@ const PublicMessagingComponent = ({
               Suggest Message
             </Button>
           </div>
-          <p className=" mb-4 text-start">Click on any message below to select it.</p>
+          <p className=" mb-4 text-start">
+            Click on any message below to select it.
+          </p>
         </div>
 
         <div className="text-center h-60 lg:text-left max-w-screen-md border-gray-100 border-2 rounded-xl mx-auto overflow-auto">

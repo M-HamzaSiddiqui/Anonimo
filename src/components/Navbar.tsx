@@ -11,25 +11,34 @@ const Navbar = () => {
   const user: User = session?.user as User;
 
   return (
-    <nav className=" p-4 md:p-6 shadow-md">
-      <div className=" container mx-auto flex flex-col md:flex-row justify-between items-center">
-        <a className=" text-xl font-bold mb-4 md:mb-0" href="#">
-          Mystery Message
+    <nav className="p-4 md:p-6 shadow-md">
+      <div className="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+        <a className="text-xl font-bold" href="#">
+          Anonylytics
         </a>
+
         {session ? (
-          <>
-            <span className="text-xl font-bold mb-4 md:mb-0">
-              Welcome , {user.username || user?.email}
-            </span>
-            <Button className=" w-full md:w-auto" onClick={() => signOut()}>
-              Logout
-            </Button>
-          </>
-        ) : (
-          <Link href={"/sign-in"}>
-            <Button className=" w-full md:w-auto">Login</Button>
-          </Link>
-        )}
+          <span className="text-xl font-bold text-center flex-1">
+            Welcome, {user.username || user?.email}
+          </span>
+        ) : null}
+
+        <div className="flex items-center gap-4">
+          {session ? (
+            <>
+              <Link href="/my-forms">
+                <Button className="w-full md:w-auto">My Forms</Button>
+              </Link>
+              <Button className="w-full md:w-auto" onClick={() => signOut()}>
+                Logout
+              </Button>
+            </>
+          ) : (
+            <Link href="/sign-in">
+              <Button className="w-full md:w-auto">Login</Button>
+            </Link>
+          )}
+        </div>
       </div>
     </nav>
   );

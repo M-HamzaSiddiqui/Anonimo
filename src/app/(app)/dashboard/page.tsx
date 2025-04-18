@@ -1,217 +1,123 @@
 "use client";
 
-import MessageCard from "@/components/MessageCard";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/use-toast";
-import { Message } from "@/model/User.model";
-import { acceptMessageSchema } from "@/schemas/acceptMessageSchema";
-import { ApiResponse } from "@/types/ApiResponse";
-import { zodResolver } from "@hookform/resolvers/zod";
-import axios, { AxiosError } from "axios";
-import { Loader2, RefreshCcw } from "lucide-react";
-import { User } from "next-auth";
+import { Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import React, { useCallback, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import PusherClient from "pusher-js";
+import axios, { AxiosError } from "axios";
+import SentimentPie from "@/components/SentimentPie";
+import SubmissionTrends from "@/components/submissionTrendsLineChart";
+import { Card, CardHeader, CardContent } from "@/components/ui/card";
+
+interface DashboardMetrics {
+  totalForms: number;
+  totalResponses: number;
+  mostActiveForm: {
+    title: string;
+    responseCount: number;
+  } | null;
+}
 
 const Page = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSwitchLoading, setIsSwitchLoading] = useState(false);
-  const { toast } = useToast();
-
-  const handleDeleteMessage = async (messageId: string) => {
-    setMessages(messages.filter((message) => message._id !== messageId));
-  };
-
   const { data: session } = useSession();
+  const { toast } = useToast();
+  const [dashboardMetrics, setDashboardMetrics] = useState<DashboardMetrics | null>(null);
+  const [isMetricsLoading, setIsMetricsLoading] = useState(false);
 
-  const form = useForm<z.infer<typeof acceptMessageSchema>>({
-    resolver: zodResolver(acceptMessageSchema),
-  });
-  const { register, watch, setValue } = form;
-
-  const acceptMessages = watch("acceptMessages");
-
-  const fetchAcceptMessage = useCallback(async () => {
-    setIsSwitchLoading(true);
-    try {
-      const response = await axios.get<ApiResponse>("/api/accept-messages");
-      console.log(response.data.isAcceptingMessage);
-      setValue("acceptMessages", response.data.isAcceptingMessage as boolean);
-    } catch (error) {
-      const axiosError = error as AxiosError<ApiResponse>;
+  const fetchDashboardMetrics = useCallback(async () => {
+    if (!session?.user?._id) {
       toast({
         title: "Error",
-        description:
-          axiosError.response?.data.message ||
-          "Failed to fetch message settings",
+        description: "User ID not found. Please log in again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsMetricsLoading(true);
+    try {
+      const response = await axios.get<DashboardMetrics>(`/api/dashboard/${session.user._id}/metrics`);
+      setDashboardMetrics(response.data);
+    } catch (error) {
+      const axiosError = error as AxiosError<{ message?: string }>;
+      toast({
+        title: "Error",
+        description: axiosError.response?.data?.message || "Failed to fetch dashboard metrics",
         variant: "destructive",
       });
     } finally {
-      setIsSwitchLoading(false);
+      setIsMetricsLoading(false);
     }
-  }, [setValue]);
-
-  const fetchMessage = useCallback(
-    async (refresh: boolean = false) => {
-      setIsLoading(true);
-      setIsSwitchLoading(false);
-      try {
-        const response = await axios.get<ApiResponse>("/api/get-messages");
-        setMessages(response.data.messages || []);
-        if (refresh) {
-          toast({
-            title: "Refreshed Messages",
-            description: "Showing latest messages",
-          });
-        }
-      } catch (error) {
-        const axiosError = error as AxiosError<ApiResponse>;
-        toast({
-          title: "Error",
-          description:
-            axiosError.response?.data.message ||
-            "Failed to fetch messsage settings",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-        setIsSwitchLoading(false);
-      }
-    },
-    [setIsLoading, setMessages]
-  );
+  }, [session, toast]);
 
   useEffect(() => {
-    if (!session || !session.user) return;
-    fetchMessage();
-    fetchAcceptMessage();
-  }, [session, setValue, fetchAcceptMessage, fetchMessage]);
+    if (session?.user?._id) fetchDashboardMetrics();
+  }, [session, fetchDashboardMetrics]);
 
-  useEffect(() => {
-    const pusherClient = new PusherClient(String(process.env.NEXT_PUBLIC_PUSHER_KEY), {
-      cluster: "ap2",
-    });
-
-    pusherClient.subscribe("message-channel");
-    pusherClient.bind("send-message", (data: Message) => {
-      console.log(data);
-      setMessages((prev) => [data, ...prev]);
-      console.log(messages);
-    });
-    return () => {
-      pusherClient.unsubscribe("message-channel");
-      pusherClient.unbind("send-message", (data: Message) => {
-        console.log(data);
-      });
-    };
-  }, []);
-
-  const handleSwitchChange = async () => {
-    try {
-      const response = await axios.post<ApiResponse>("/api/accept-messages", {
-        acceptMessages: !acceptMessages,
-      });
-      setValue("acceptMessages", !acceptMessages);
-      toast({
-        title: response.data.message,
-        variant: "default",
-      });
-    } catch (error) {
-      const axiosError = error as AxiosError<ApiResponse>;
-      toast({
-        title: "Error",
-        description:
-          axiosError.response?.data.message ||
-          "Failed to toggle message acceptance",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const { username } = (session?.user as User) || "";
-  let baseUrl = ""
-  if(typeof window === 'undefined') {
-    baseUrl = `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-  } else
-  baseUrl = `${window.location.protocol}//${window.location.host}`;
-  const profileUrl = `${baseUrl}/u/${username}`;
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(profileUrl);
-    toast({
-      title: "URL copied to cliboard",
-      variant: "default",
-    });
-  };
-
-  if (!session || !session.user) {
-    return <>Please login</>;
+  if (!session?.user) {
+    return <p className="text-center mt-10 text-lg">Please log in to access the dashboard.</p>;
   }
 
   return (
-    <>
-      <div className=" my-8 mx-4 md:mx-8 lg:mx-auto p-6 bg-white rounded w-full max-w-6xl">
-        <h1 className=" text-4xl font-bold mb-4">User Dashboard</h1>
-        <div className=" mb-4">
-          <h2 className=" text-lg font-semibold mb-2">Copy Your Unique Link</h2>{" "}
-          <div className=" flex items-center">
-            <input
-              type="text"
-              value={profileUrl}
-              disabled
-              className=" input input-bordered w-full p-2 mr-2"
-            />
-            <Button onClick={copyToClipboard}>Copy</Button>
-          </div>
-        </div>
-        <div className=" mb-4">
-          <Switch
-            {...register("acceptMessages")}
-            checked={acceptMessages}
-            onCheckedChange={handleSwitchChange}
-            disabled={isSwitchLoading}
-          />
-          <span className=" ml-2">
-            Accept Messages: {acceptMessages ? "On" : "Off"}
-          </span>
-        </div>
-        <Separator />
+    <div className="my-8 mx-4 md:mx-8 lg:mx-auto p-6 bg-white rounded-lg shadow-md w-full max-w-6xl">
+      <h1 className="text-4xl font-bold mb-6 text-center">Admin Dashboard</h1>
 
-        <Button
-          className=" mt-4"
-          variant={"outline"}
-          onClick={(e) => {
-            e.preventDefault();
-            fetchMessage(true);
-          }}
-        >
-          {isLoading ? (
-            <Loader2 className=" h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCcw className=" h-4 w-4" />
-          )}
-        </Button>
-        <div className=" mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {messages.length > 0 ? (
-            messages.map((message, index) => (
-              <MessageCard
-                key={message.id || index}
-                message={message}
-                onMessageDelete={handleDeleteMessage}
-              />
-            ))
-          ) : (
-            <p>No messages to display.</p>
+      {isMetricsLoading ? (
+        <div className="flex justify-center items-center my-6">
+          <Loader2 className="h-6 w-6 animate-spin" />
+          <span className="ml-2">Loading metrics...</span>
+        </div>
+      ) : dashboardMetrics ? (
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="p-6 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
+            <h3 className="text-lg font-semibold mb-2">Total Forms</h3>
+            <p className="text-3xl font-bold text-blue-600">{dashboardMetrics.totalForms}</p>
+          </div>
+          <div className="p-6 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
+            <h3 className="text-lg font-semibold mb-2">Total Responses</h3>
+            <p className="text-3xl font-bold text-green-600">{dashboardMetrics.totalResponses}</p>
+          </div>
+          {dashboardMetrics.mostActiveForm && (
+            <div className="p-6 bg-gray-50 rounded-lg shadow-sm border border-gray-200">
+              <h3 className="text-lg font-semibold mb-2">Most Active Form</h3>
+              <p className="text-lg font-medium">{dashboardMetrics.mostActiveForm.title}</p>
+              <p className="text-sm text-gray-600 mt-1">Responses: {dashboardMetrics.mostActiveForm.responseCount}</p>
+            </div>
           )}
         </div>
+      ) : (
+        <p className="text-center text-gray-500">No metrics available.</p>
+      )}
+
+      <Separator className="my-8" />
+
+      {/* 📊 Sentiment Analysis & Submission Trends */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 🟢 Sentiment Pie Chart */}
+        <Card>
+          <CardHeader className="text-lg font-semibold">Sentiment Analysis</CardHeader>
+          <CardContent>
+            <SentimentPie />
+          </CardContent>
+        </Card>
+
+        {/* 🔵 Submission Trends */}
+        <Card>
+          <CardHeader className="text-lg font-semibold">Submission Trends</CardHeader>
+          <CardContent>
+            <SubmissionTrends />
+          </CardContent>
+        </Card>
       </div>
-    </>
+
+      <div className="flex justify-end mt-6">
+        <Button onClick={fetchDashboardMetrics} disabled={isMetricsLoading}>
+          {isMetricsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh Metrics"}
+        </Button>
+      </div>
+    </div>
   );
 };
 
