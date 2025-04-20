@@ -10,6 +10,8 @@ export interface Response extends Document {
   }[];
   totalScore?: number;
   submittedAt: Date;
+  username?:string;
+  email?: string;
 }
 
 const ResponseSchema: Schema<Response> = new Schema({
@@ -32,6 +34,8 @@ const ResponseSchema: Schema<Response> = new Schema({
   ],
   totalScore: { type: Number, default: 0 },
   submittedAt: { type: Date, default: Date.now },
+  username: { type: String },
+  email: { type: String },
 });
 
 const ResponseModel =

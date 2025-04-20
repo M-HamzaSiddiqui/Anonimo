@@ -31,15 +31,10 @@ export async function POST(req: NextRequest) {
         if (!question) continue;
 
         const userAnswer = response.responseValue;
-        console.log("typeof userAnswer:", typeof userAnswer);
         const correctAnswer = question.correctAnswer;
-        console.log("Correct Answer:", correctAnswer);
-        console.log("U = C", userAnswer === correctAnswer);
         const marks = question.marks || 1;
-        console.log("Marks:", marks);
 
         let isCorrect = false;
-        console.log("Question Type:", question.questionType);
         if (userAnswer === correctAnswer) 
           isCorrect = true;
 

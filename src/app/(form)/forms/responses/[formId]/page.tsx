@@ -11,20 +11,31 @@ interface ResponseData {
   responses: {
     questionText: string;
     responseValue: any;
+    isCorrect?: boolean;
+    marks?: number;
   }[];
+  totalScore?: number;
   submittedAt: string;
+  username?: string;
+  email?: string;
 }
 
 const Responses = () => {
   const { formId } = useParams();
   const [responses, setResponses] = useState<ResponseData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isQuiz, setIsQuiz] = useState(false); // To track if the form is a quiz
 
   useEffect(() => {
     const fetchResponses = async () => {
       try {
         const response = await axios.get(`/api/forms/get-responses/${formId}`);
         setResponses(response.data.data);
+
+        // Check if form is a quiz by looking for totalScore in the first response
+        if (response.data.data.length > 0 && response.data.data[0].totalScore !== undefined) {
+          setIsQuiz(true);
+        }
       } catch (error) {
         console.error("Error fetching responses:", error);
       } finally {
@@ -34,11 +45,6 @@ const Responses = () => {
 
     fetchResponses();
   }, [formId]);
-
-  // Extract unique question texts for table headers
-  const uniqueQuestions = Array.from(
-    new Set(responses.flatMap((res) => res.responses.map((r) => r.questionText)))
-  );
 
   // Function to format response value
   const formatResponseValue = (value: any) => {
@@ -54,11 +60,12 @@ const Responses = () => {
     const excelData = responses.map((response) => {
       const row: Record<string, any> = {};
 
-      // Fill in answers for each question
-      uniqueQuestions.forEach((question) => {
-        const foundResponse = response.responses.find((r) => r.questionText === question);
-        row[question] = foundResponse ? formatResponseValue(foundResponse.responseValue) : "";
-      });
+      // Add Username and Email for quiz type
+      if (isQuiz) {
+        row["Username"] = response.username || "";
+        row["Email"] = response.email || "";
+        row["Total Marks Obtained"] = response.totalScore || 0;
+      }
 
       // Add submission date
       row["Submitted At"] = new Date(response.submittedAt).toLocaleString();
@@ -101,11 +108,19 @@ const Responses = () => {
           <table className="w-full border-collapse border border-gray-700">
             <thead>
               <tr className="bg-gray-800">
-                {uniqueQuestions.map((question, index) => (
-                  <th key={index} className="px-4 py-2 border border-gray-600 text-left">
-                    {question}
-                  </th>
-                ))}
+                {isQuiz ? (
+                  <>
+                    <th className="px-4 py-2 border border-gray-600 text-left">Username</th>
+                    <th className="px-4 py-2 border border-gray-600 text-left">Email</th>
+                    <th className="px-4 py-2 border border-gray-600 text-left">Total Marks Obtained</th>
+                  </>
+                ) : (
+                  responses[0]?.responses.map((response) => (
+                    <th key={response.questionText} className="px-4 py-2 border border-gray-600 text-left">
+                      {response.questionText}
+                    </th>
+                  ))
+                )}
                 <th className="px-4 py-2 border border-gray-600 text-left">Submitted At</th>
               </tr>
             </thead>
@@ -117,11 +132,19 @@ const Responses = () => {
 
                 return (
                   <tr key={response._id} className="border border-gray-700">
-                    {uniqueQuestions.map((question, idx) => (
-                      <td key={idx} className="px-4 py-2 border border-gray-600">
-                        {responseMap.get(question) || ""}
-                      </td>
-                    ))}
+                    {isQuiz ? (
+                      <>
+                        <td className="px-4 py-2 border border-gray-600">{response.username || ""}</td>
+                        <td className="px-4 py-2 border border-gray-600">{response.email || ""}</td>
+                        <td className="px-4 py-2 border border-gray-600">{response.totalScore || 0}</td>
+                      </>
+                    ) : (
+                      responses[0]?.responses.map((resp, idx) => (
+                        <td key={idx} className="px-4 py-2 border border-gray-600">
+                          {responseMap.get(resp.questionText) || ""}
+                        </td>
+                      ))
+                    )}
                     <td className="px-4 py-2 border border-gray-600">
                       {new Date(response.submittedAt).toLocaleString()}
                     </td>

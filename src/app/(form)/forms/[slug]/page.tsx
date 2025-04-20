@@ -7,13 +7,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -22,23 +15,21 @@ const ResponseForm = () => {
   const { slug } = useParams();
   const router = useRouter();
   const [form, setForm] = useState<any>(null);
-  const [responses, setResponses] = useState<Record<string, string | string[]>>(
-    {}
-  );
+  const [responses, setResponses] = useState<Record<string, string | string[]>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const { toast } = useToast();
-  const [score, setScore] = useState<number | null>(null); // For quiz result
 
   useEffect(() => {
     if (!slug) return;
 
     const fetchForm = async () => {
       try {
-        setLoading(true);
         const { data } = await axios.get(`/api/forms/${slug}`);
         setForm(data.form);
-      } catch (error) {
+      } catch {
         toast({
           title: "Error",
           description: "Failed to load form. Please try again later.",
@@ -53,62 +44,66 @@ const ResponseForm = () => {
   }, [slug, toast]);
 
   const handleChange = (questionId: string, value: string | string[]) => {
-    setResponses((prev) => ({
-      ...prev,
-      [questionId]: value,
-    }));
+    setResponses((prev) => ({ ...prev, [questionId]: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const formattedResponses = Object.entries(responses).map(
-      ([questionId, responseValue]) => ({
-        questionId,
-        responseValue,
-      })
-    );
-
-    const payload = { formId: form._id, responses: formattedResponses };
-    console.log("payload", payload);
-
-    try {
-      const {data} = await axios.post("/api/forms/response", payload);
-      console.log(data)
-      console.log(form.category)
-
-      if (form.category === "Quiz" && data.score !== undefined) {
-        setScore(data.score);
-        toast({
-          title: `Your score: ${data.score}/${form.totalMarks}`,
-          description: "Quiz submitted successfully!",
-        });
-
-        // Redirect to Thank You page with the score as query param
-        // Redirect to Thank You page with the score as query param
-        setTimeout(() => {
-          const queryParams = new URLSearchParams({
-            score: String(data.score),
-            totalMarks: String(form.totalMarks),
-          }).toString();
-
-          router.push(`/thank-you?${queryParams}`);
-        }, 3000); // Optional: Delay redirect for a smoother experience
-        // Optional: Delay redirect for a smoother experience
-      } else {
-        toast({
-          title: "Success!",
-          description: "Your response has been recorded successfully",
-        });
-        router.push("/thank-you");
-      }
-    } catch (error) {
+    if (form.category === "Quiz" && (!username || !email)) {
       toast({
-        title: "Submission Failed",
-        description: "Something went wrong. Please try again.",
+        title: "Missing Fields",
+        description: "Please provide your name and email to submit the quiz.",
         variant: "destructive",
       });
+      setIsSubmitting(false);
+      return;
+    }
+
+    const payload = {
+      formId: form._id,
+      responses: Object.entries(responses).map(([questionId, responseValue]) => ({
+        questionId,
+        responseValue,
+      })),
+      ...(form.category === "Quiz" && { username, email }),
+    };
+
+    try {
+      await axios.post(
+        form.category === "Quiz"
+          ? "/api/forms/response/submit-quiz-response"
+          : "/api/forms/response",
+        payload
+      );
+
+      toast({
+        title: "Success!",
+        description: "Your response has been recorded successfully",
+      });
+
+      router.push("/thank-you");
+    } catch (error: any) {
+      const errorMessage =
+        error?.response?.data?.error || "Something went wrong. Please try again.";
+
+      if (
+        error?.response?.status === 400 &&
+        errorMessage === "This email has already submitted a response for this quiz."
+      ) {
+        toast({
+          title: "Already Submitted",
+          description: "You have already submitted a response with this email.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Submission Failed",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -116,21 +111,12 @@ const ResponseForm = () => {
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
   };
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5 },
-    },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
   };
 
   if (loading) {
@@ -168,7 +154,7 @@ const ResponseForm = () => {
       >
         <div className="bg-gradient-to-r from-indigo-900/50 to-purple-900/50 p-8 border-b border-gray-800">
           <motion.div variants={itemVariants}>
-            <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400 text-center mb-2">
+            <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400 text-center mb-2">
               {form.title}
             </h1>
             <p className="text-gray-300 text-md text-center mt-2 max-w-2xl mx-auto">
@@ -179,6 +165,32 @@ const ResponseForm = () => {
 
         <div className="p-8">
           <form onSubmit={handleSubmit} className="space-y-8">
+            {form.category === "Quiz" && (
+              <motion.div variants={itemVariants} className="space-y-6">
+                <div>
+                  <Label className="block text-lg text-gray-200 mb-1">Your Name</Label>
+                  <Input
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Enter your name"
+                    className="w-full bg-gray-700/70 text-white border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label className="block text-lg text-gray-200 mb-1">Your Email</Label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="w-full bg-gray-700/70 text-white border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg"
+                    required
+                  />
+                </div>
+              </motion.div>
+            )}
+
             {form.questions.map((q: any, index: number) => (
               <motion.div
                 key={index}
@@ -197,18 +209,18 @@ const ResponseForm = () => {
                 {q.questionType === "text" && (
                   <Input
                     type="text"
-                    className="w-full bg-gray-700/70 text-white border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg"
-                    onChange={(e) => handleChange(q._id, e.target.value)}
                     placeholder="Your answer"
+                    onChange={(e) => handleChange(q._id, e.target.value)}
+                    className="w-full bg-gray-700/70 text-white border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg"
                   />
                 )}
 
                 {q.questionType === "number" && (
                   <Input
                     type="number"
-                    className="w-full bg-gray-700/70 text-white border-gray-600 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg"
-                    onChange={(e) => handleChange(q._id, e.target.value)}
                     placeholder="0"
+                    onChange={(e) => handleChange(q._id, e.target.value)}
+                    className="w-full bg-gray-700/70 text-white border-gray-600 focus:border-indigo-500 focus:ring-indigo-500 rounded-lg"
                   />
                 )}
 
@@ -244,9 +256,7 @@ const ResponseForm = () => {
                           onCheckedChange={(checked) => {
                             const optText = opt.text || opt;
                             setResponses((prev) => {
-                              const currentValues: string[] = Array.isArray(
-                                prev[q._id]
-                              )
+                              const current: string[] = Array.isArray(prev[q._id])
                                 ? (prev[q._id] as string[])
                                 : prev[q._id]
                                 ? [prev[q._id] as string]
@@ -255,8 +265,8 @@ const ResponseForm = () => {
                               return {
                                 ...prev,
                                 [q._id]: checked
-                                  ? [...currentValues, optText]
-                                  : currentValues.filter((v) => v !== optText),
+                                  ? [...current, optText]
+                                  : current.filter((v) => v !== optText),
                               };
                             });
                           }}
@@ -266,53 +276,19 @@ const ResponseForm = () => {
                     ))}
                   </div>
                 )}
-
-                {q.questionType === "dropdown" && (
-                  <Select onValueChange={(value) => handleChange(q._id, value)}>
-                    <SelectTrigger className="w-full bg-gray-700/70 border-gray-600 text-white hover:border-indigo-500/70 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg">
-                      <SelectValue placeholder="Select an option" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-gray-800 border-gray-700 text-white">
-                      {q.options.map((opt: any, i: number) => (
-                        <SelectItem
-                          key={i}
-                          value={opt.text || opt}
-                          className="focus:bg-indigo-900/30 hover:bg-gray-700"
-                        >
-                          {opt.text || opt}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
               </motion.div>
             ))}
 
-            <motion.div variants={itemVariants} className="pt-4">
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium p-6 h-auto rounded-xl shadow-lg shadow-indigo-900/20 transition-all duration-300 disabled:opacity-70"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  "Submit Response"
-                )}
-              </Button>
-            </motion.div>
-
-            {score !== null && (
-              <motion.div
-                variants={itemVariants}
-                className="mt-6 text-center text-xl text-indigo-400 font-semibold"
-              >
-                You scored: {score} / {form.totalMarks}
-              </motion.div>
-            )}
+            <Button
+              type="submit"
+              className="w-full bg-indigo-600 hover:bg-indigo-700"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <Loader2 className="animate-spin w-5 h-5 mr-2" />
+              ) : null}
+              Submit Response
+            </Button>
           </form>
         </div>
       </motion.div>
