@@ -3,13 +3,38 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
-import { Loader2, MoreVertical, BarChart2, MessageSquare, Share2, Trash, Pencil } from "lucide-react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import {
+  Loader2,
+  MoreVertical,
+  BarChart2,
+  MessageSquare,
+  Share2,
+  Trash,
+  Pencil,
+} from "lucide-react";
 import Link from "next/link";
 import axios from "axios";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 
 interface Form {
   _id: string;
@@ -82,10 +107,23 @@ const MyForms = () => {
     }
   };
 
-  const categories = ["all", ...Array.from(new Set(forms.map((form) => form.category || "Uncategorized")))];
-  const filteredForms = selectedCategory === "all" ? forms : forms.filter((form) => form.category === selectedCategory);
+  const categories = [
+    "all",
+    ...Array.from(
+      new Set(forms.map((form) => form.category || "Uncategorized"))
+    ),
+  ];
+  const filteredForms =
+    selectedCategory === "all"
+      ? forms
+      : forms.filter((form) => form.category === selectedCategory);
 
-  if (!session) return <p className="text-center mt-6 text-gray-300">Please log in to view your forms.</p>;
+  if (!session)
+    return (
+      <p className="text-center mt-6 text-gray-300">
+        Please log in to view your forms.
+      </p>
+    );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white p-6">
@@ -93,7 +131,9 @@ const MyForms = () => {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold">My Forms</h1>
           <Link href="/create-form">
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white">+ Create New Form</Button>
+            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+              + Create New Form
+            </Button>
           </Link>
         </div>
 
@@ -106,7 +146,11 @@ const MyForms = () => {
             </SelectTrigger>
             <SelectContent className="bg-gray-800 text-white">
               {categories.map((category) => (
-                <SelectItem key={category} value={category} className="hover:bg-gray-700">
+                <SelectItem
+                  key={category}
+                  value={category}
+                  className="hover:bg-gray-700"
+                >
                   {category.charAt(0).toUpperCase() + category.slice(1)}
                 </SelectItem>
               ))}
@@ -119,7 +163,9 @@ const MyForms = () => {
             <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
           </div>
         ) : filteredForms.length === 0 ? (
-          <p className="text-center text-gray-400">No forms found in this category.</p>
+          <p className="text-center text-gray-400">
+            No forms found in this category.
+          </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredForms.map((form) => (
@@ -131,31 +177,62 @@ const MyForms = () => {
                 <CardHeader className="relative">
                   {/* Title, Category, Created Date (Top Left) */}
                   <div className="text-left">
-                    <CardTitle className="text-lg text-white">{form.title}</CardTitle>
-                    <p className="text-sm text-gray-400">Created on {new Date(form.createdAt).toLocaleDateString()}</p>
-                    <p className="text-xs text-blue-400">Category: {form.category}</p>
+                    <CardTitle className="text-lg text-white">
+                      {form.title}
+                    </CardTitle>
+                    <p className="text-sm text-gray-400">
+                      Created on {new Date(form.createdAt).toLocaleDateString()}
+                    </p>
+                    <p className="text-xs text-blue-400">
+                      Category: {form.category}
+                    </p>
                   </div>
 
                   {/* Three-dot menu (Top Right) */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="text-white hover:bg-gray-700 p-2 absolute top-0 right-0 m-2">
+                      <Button
+                        variant="ghost"
+                        className="text-white hover:bg-gray-700 p-2 absolute top-0 right-0 m-2"
+                      >
                         <MoreVertical className="h-5 w-5" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="bg-gray-800 border border-gray-600 text-white">
                       <DropdownMenuItem asChild>
-                        <Link href={`/forms/${form._id}/edit`} className="flex items-center space-x-2">
+                        <Link
+                          href={`/forms/${form._id}/edit`}
+                          className="flex items-center space-x-2"
+                        >
                           <Pencil className="h-4 w-4" />
                           <span>Edit</span>
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => {
-                          if (confirm("Are you sure you want to delete this form?")) {
-                            axios.delete(`/api/forms/${form._id}`).then(() => {
+                        onClick={async () => {
+                          if (
+                            confirm(
+                              "Are you sure you want to delete this form?"
+                            )
+                          ) {
+                            try {
+                              await axios.delete(`/api/forms/${form._id}`);
                               setForms(forms.filter((f) => f._id !== form._id));
-                            });
+                              toast({
+                                title: "Form Deleted",
+                                description:
+                                  "The form has been successfully deleted.",
+                                variant: "default",
+                              });
+                            } catch (error) {
+                              console.error("Failed to delete form:", error);
+                              toast({
+                                title: "Error",
+                                description:
+                                  "Something went wrong while deleting the form.",
+                                variant: "destructive",
+                              });
+                            }
                           }
                         }}
                         className="text-red-500 flex items-center space-x-2"
@@ -167,7 +244,6 @@ const MyForms = () => {
                   </DropdownMenu>
                 </CardHeader>
 
-                
                 <CardFooter className="flex justify-between mt-8">
                   <Link href={`/forms/form-analytics/${form.slug}`}>
                     <Button className="bg-purple-600 hover:bg-purple-700 text-white">
@@ -179,7 +255,10 @@ const MyForms = () => {
                       <MessageSquare className="h-4 w-4 mr-1" /> Responses
                     </Button>
                   </Link>
-                  <Button className="bg-green-600 hover:bg-green-700 text-white" onClick={() => handleShare(form.slug)}>
+                  <Button
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => handleShare(form.slug)}
+                  >
                     <Share2 className="h-4 w-4 mr-1" /> Share
                   </Button>
                 </CardFooter>

@@ -5,7 +5,10 @@ export interface Response extends Document {
   responses: {
     questionId: Types.ObjectId;
     responseValue: any;
+    isCorrect?: boolean;
+    marks?: number;
   }[];
+  totalScore?: number;
   submittedAt: Date;
 }
 
@@ -23,8 +26,11 @@ const ResponseSchema: Schema<Response> = new Schema({
         required: true,
       },
       responseValue: { type: Schema.Types.Mixed, required: true },
+      isCorrect: { type: Boolean, default: false },
+      marks: { type: Number, default: 0 },
     },
   ],
+  totalScore: { type: Number, default: 0 },
   submittedAt: { type: Date, default: Date.now },
 });
 

@@ -7,6 +7,8 @@ export interface Question {
   questionType: "text" | "number" | "multiple-choice" | "checkbox" | "dropdown";
   options?: { text: string }[];
   order: number;
+  marks?: number;
+  correctAnswer?: string | number | string[] | number[];
 }
 
 export interface Form extends Document {
@@ -14,6 +16,7 @@ export interface Form extends Document {
   description?: string;
   category: string; // ✅ Added category field
   questions: Question[];
+  totalMarks?: number;
   createdAt: Date;
   ownerId: Types.ObjectId;
   slug: string;
@@ -56,8 +59,13 @@ const FormSchema: Schema<Form> = new Schema({
         default: [],
       },
       order: { type: Number, required: true },
+      marks: {type: Number},
+      correctAnswer: {
+        type: Schema.Types.Mixed
+      },
     },
   ],
+  totalMarks: { type: Number },
   createdAt: {
     type: Date,
     default: Date.now,
@@ -68,6 +76,15 @@ const FormSchema: Schema<Form> = new Schema({
     required: true,
   },
   slug: { type: String, unique: true, required: true, default: () => nanoid(10) },
+});
+
+FormSchema.pre("save", function(next) {
+  if (this.category === "Quiz") {
+    this.totalMarks = this.questions.reduce((sum, question) => {
+      return sum + (question.marks || 0);  // Ensure marks is treated as a number
+    }, 0);
+  }
+  next();
 });
 
 const FormModel =
