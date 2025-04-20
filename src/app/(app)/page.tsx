@@ -329,7 +329,7 @@ const Home = () => {
         >
           <h2 className="text-3xl md:text-4xl font-bold mb-4">What Our Users Say</h2>
           <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-            Join thousands of satisfied users who've transformed their data collection
+            Join thousands of satisfied users who&apos;ve transformed their data collection
           </p>
         </motion.div>
         
@@ -348,7 +348,7 @@ const Home = () => {
             >
               <Card className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 h-full flex flex-col justify-center p-8">
                 <CardContent className="pt-4 text-center">
-                  <p className="text-xl text-gray-300 mb-6">"{testimonial.text}"</p>
+                  <p className="text-xl text-gray-300 mb-6">&quot;{testimonial.text}&quot;</p>
                   <p className="font-semibold text-white">{testimonial.author}</p>
                   <p className="text-sm text-gray-400">{testimonial.role}</p>
                 </CardContent>
