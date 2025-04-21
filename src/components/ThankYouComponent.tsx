@@ -77,12 +77,6 @@ const ThankYou = () => {
             </div>
           )}
 
-          <div className="py-4 flex justify-center space-x-3">
-            <Button onClick={() => router.push("/")} variant="secondary">
-              Back to Home
-            </Button>
-          </div>
-
           <div className="flex justify-center mt-6">
             <Sparkles className="text-indigo-400 w-6 h-6 animate-pulse" />
           </div>
