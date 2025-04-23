@@ -1,36 +1,29 @@
 import { RateLimiterRedis } from "rate-limiter-flexible";
-import { redis, connectRedis } from "./redis";
+import { connectRedis } from "./redis";
 
 const isProd = process.env.NODE_ENV === 'production';
 const prefix = isProd ? 'prod_login_fail_ip' : 'dev_login_fail_ip';
 
-let loginLimiter: RateLimiterRedis | null = null;
+export async function rateLimitter(key: string) {
+  const redis = await connectRedis(); // Always ensure connected
 
-export const getLimiter = async () => {
-  await connectRedis();
-  if (!loginLimiter) {
-    loginLimiter = new RateLimiterRedis({
-      storeClient: redis,
-      keyPrefix: prefix,
-      points: 3,
-      duration: 300,
-      blockDuration: 3600,
-    });
-  }
-  return loginLimiter;
-};
+  const limiter = new RateLimiterRedis({
+    storeClient: redis,
+    keyPrefix: prefix,
+    points: 3,
+    duration: 300,
+    blockDuration: 3600,
+  });
 
-export async function rateLimitter(ip: string) {
+  const fullKey = `rate-limiter-flexible:${prefix}:${key}`;
+  console.log("🔐 Redis rate-limit key:", fullKey);
+
   try {
-    const limiter = await getLimiter()
-    console.log("Limiter consuming", ip)
-    const result = await limiter.consume(ip, 1)
-    console.log("limiter result", result)
-    await redis.quit()
-    return { success: true };
-  } catch (error) {
-    console.error(`Rate limiting triggered for key: ${ip}`);
-    await redis.quit()
-    return { success: false };
+    const result = await limiter.consume(key, 1);
+    console.log("✅ Rate limiter OK:", key, "| Remaining:", result.remainingPoints);
+    return { success: true, remaining: result.remainingPoints };
+  } catch (error: any) {
+    console.warn("⛔ Rate limiter BLOCKED:", key, "| msBeforeNext:", error.msBeforeNext);
+    return { success: false, retryAfter: error.msBeforeNext };
   }
 }

@@ -11,4 +11,5 @@ export const connectRedis = async() => {
     if(!redis.isOpen) {
         await redis.connect()
     }
+    return redis
 }
