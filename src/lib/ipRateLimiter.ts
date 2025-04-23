@@ -23,7 +23,9 @@ export const getLimiter = async () => {
 export async function rateLimitter(ip: string) {
   try {
     const limiter = await getLimiter()
-    await limiter.consume(ip, 1)
+    console.log("Limiter consuming", ip)
+    const result = await limiter.consume(ip, 1)
+    console.log("limiter result", result)
     await redis.quit()
     return { success: true };
   } catch (error) {
