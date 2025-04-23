@@ -40,14 +40,19 @@ const SignInComponent = () => {
         identifier: data.identifier,
         password: data.password,
       });
+      console.log(result)
       setIsSubmitting(false);
+      console.log(result?.error);
       if (result?.error) {
+        console.log("hello inside if");
         toast({
           title: "Unable to login",
           description: result?.error,
           variant: "destructive",
         });
+        console.log("after toast");
       }
+      console.log(result?.url);
       if (result?.url) {
         router.replace("/dashboard");
       }

@@ -24,8 +24,11 @@ export async function rateLimitter(ip: string) {
   try {
     const limiter = await getLimiter()
     await limiter.consume(ip, 1)
+    await redis.quit()
     return { success: true };
   } catch (error) {
+    console.error(`Rate limiting triggered for key: ${ip}`);
+    await redis.quit()
     return { success: false };
   }
 }
