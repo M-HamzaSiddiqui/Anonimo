@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import dbConnect from "@/lib/dbConnect";
 import { NextAuthOptions } from "next-auth";
 import UserModel from "@/model/User.model";
+import { rateLimitter } from '@/lib/ipRateLimiter';
 
 
 export const authOptions: NextAuthOptions = {
@@ -14,14 +15,32 @@ export const authOptions: NextAuthOptions = {
                 email: { label: "Email", type: "email", placeholder: "Enter you email" },
                 password: { label: "Password", type: "password" }
             },
-            async authorize(credentials: any) : Promise<any> {
+            async authorize(credentials: any, req: any) : Promise<any> {
                 await dbConnect()
+
+                const identifier = credentials.identifier.toLowerCase()
+
+                const forwarded = req.headers["x-forwarded-for"]
+                const ip = typeof forwarded === 'string' ? forwarded.split(",")[0]?.trim() : "unknown"
+
+                const ipKey = `login:ip:${ip}`
+                const userKey = `login:user:${identifier}`
+
+                const ipLimit = await rateLimitter(ipKey)
+                const userLimit = await rateLimitter(userKey)
+
+                if (!ipLimit.success || !userLimit.success) {
+                    throw new Error('Too many login attempts. Please try again later.')
+                }
+
                     const user = await UserModel.findOne({
                         $or: [
                             {email: credentials.identifier},
                             {username: credentials.identifier},
                         ]
                     })
+
+                    console.log(user)
 
                     if(!user) {
                         throw new Error('No user found with this email or username')

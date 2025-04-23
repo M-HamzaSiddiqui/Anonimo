@@ -31,11 +31,14 @@ const Responses = () => {
       try {
         const response = await axios.get(`/api/forms/get-responses/${formId}`);
         setResponses(response.data.data);
+        console.log("data", response.data.data);
 
         // Check if form is a quiz by looking for totalScore in the first response
-        if (response.data.data.length > 0 && response.data.data[0].totalScore !== undefined) {
+        if (response.data.data.length > 0 && response.data.data[0].totalScore !== -1) {
+          console.log("yes")
           setIsQuiz(true);
         }
+        console.log("isQuiz", isQuiz)
       } catch (error) {
         console.error("Error fetching responses:", error);
       } finally {
@@ -45,6 +48,8 @@ const Responses = () => {
 
     fetchResponses();
   }, [formId]);
+
+  console.log("responses", responses)
 
   // Function to format response value
   const formatResponseValue = (value: any) => {

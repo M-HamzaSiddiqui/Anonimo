@@ -32,7 +32,7 @@ const ResponseSchema: Schema<Response> = new Schema({
       marks: { type: Number, default: 0 },
     },
   ],
-  totalScore: { type: Number, default: 0 },
+  totalScore: { type: Number, default: -1 },
   submittedAt: { type: Date, default: Date.now },
   username: { type: String },
   email: { type: String },

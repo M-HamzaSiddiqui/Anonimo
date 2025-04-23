@@ -110,7 +110,7 @@ const Form = () => {
     const totalMarks =
       formCategory === "Quiz"
         ? questions.reduce((sum, q) => sum + (q.marks || 0), 0)
-        : undefined;
+        : -1;
 
     const formData = {
       title: formTitle,
@@ -180,7 +180,10 @@ const Form = () => {
             </label>
             <Select
               value={formCategory}
-              onValueChange={setFormCategory}
+              onValueChange={(value) => {
+                setFormCategory(value);
+                setQuestions([]);
+              }}
               required
             >
               <SelectTrigger className="w-full bg-gray-700 border-gray-600 text-gray-300">
@@ -335,7 +338,11 @@ const Form = () => {
                               )}
 
                               {/* Show options input only if the question type is multiple-choice, checkbox, or dropdown */}
-                              {formCategory == "Quiz" && (
+                              {[
+                                "multiple-choice",
+                                "checkbox",
+                                "dropdown",
+                              ].includes(question.questionType) && (
                                 <div className="mt-4 p-4 bg-gray-700 rounded-lg">
                                   <p className="text-sm font-medium text-gray-300 mb-2">
                                     Options
@@ -357,21 +364,27 @@ const Form = () => {
                                           question.questionType
                                         )}
                                       </div>
-                                      <input
-                                        type="radio"
-                                        name={`correct-${index}`} // Ensures only one correct option per question
-                                        checked={
-                                          question.correctAnswer === option
-                                        }
-                                        onChange={() => {
-                                          setQuestions((prev) => {
-                                            const newQ = [...prev];
-                                            newQ[index].correctAnswer = option;
-                                            return newQ;
-                                          });
-                                        }}
-                                        className="accent-green-500"
-                                      />
+
+                                      {/* Optional input depending on category */}
+                                      {formCategory === "Quiz" && (
+                                        <input
+                                          type="radio"
+                                          name={`correct-${index}`}
+                                          checked={
+                                            question.correctAnswer === option
+                                          }
+                                          onChange={() => {
+                                            setQuestions((prev) => {
+                                              const newQ = [...prev];
+                                              newQ[index].correctAnswer =
+                                                option;
+                                              return newQ;
+                                            });
+                                          }}
+                                          className="accent-green-500"
+                                        />
+                                      )}
+
                                       <Input
                                         type="text"
                                         value={option}
@@ -381,7 +394,6 @@ const Form = () => {
                                             newQ[index].options[optIndex] =
                                               e.target.value;
 
-                                            // Optional: if the updated option was marked correct, update correctAnswer too
                                             if (
                                               newQ[index].correctAnswer ===
                                               option
@@ -401,34 +413,22 @@ const Form = () => {
                                         onClick={() => {
                                           setQuestions((prev) => {
                                             const newQ = [...prev];
-                                            const removedOption =
-                                              newQ[index].options[optIndex];
-
-                                            newQ[index].options = newQ[
-                                              index
-                                            ].options.filter(
-                                              (_, i) => i !== optIndex
+                                            newQ[index].options.splice(
+                                              optIndex,
+                                              1
                                             );
-
-                                            // Remove correctAnswer if the selected one was deleted
-                                            if (
-                                              newQ[index].correctAnswer ===
-                                              removedOption
-                                            ) {
-                                              newQ[index].correctAnswer = "";
-                                            }
-
                                             return newQ;
                                           });
                                         }}
                                       >
-                                        ✕
+                                        🗑️
                                       </button>
                                     </div>
                                   ))}
 
                                   <Button
                                     type="button"
+                                    className="mt-2 text-sm bg-gray-600 hover:bg-gray-500"
                                     onClick={() => {
                                       setQuestions((prev) => {
                                         const newQ = [...prev];
@@ -436,10 +436,8 @@ const Form = () => {
                                         return newQ;
                                       });
                                     }}
-                                    variant="outline"
-                                    className="mt-3 text-sm bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600"
                                   >
-                                    <span className="mr-1">+</span> Add Option
+                                    ➕ Add Option
                                   </Button>
                                 </div>
                               )}

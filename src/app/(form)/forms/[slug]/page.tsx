@@ -1,8 +1,9 @@
 "use client";
 
 import axios from "axios";
+import ReCAPTCHA from "react-google-recaptcha";
 import { useParams, useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { motion } from "framer-motion";
 import { Input } from "@/components/ui/input";
@@ -15,12 +16,16 @@ const ResponseForm = () => {
   const { slug } = useParams();
   const router = useRouter();
   const [form, setForm] = useState<any>(null);
-  const [responses, setResponses] = useState<Record<string, string | string[]>>({});
+  const [responses, setResponses] = useState<Record<string, string | string[]>>(
+    {}
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const { toast } = useToast();
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -47,9 +52,25 @@ const ResponseForm = () => {
     setResponses((prev) => ({ ...prev, [questionId]: value }));
   };
 
+  const t = process.env.NODE_ENV === "production"
+  ? process.env.RECAPTCHA_PROD_SITE_KEY!
+  : process.env.NEXT_PUBLIC_RECAPTCHA_DEV_SITE_KEY!
+
+  console.log("t", typeof(t))
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+
+    if (!recaptchaToken) {
+      toast({
+        title: "reCAPTCHA Failed",
+        description: "Please verify that you're not a robot.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
 
     if (form.category === "Quiz" && (!username || !email)) {
       toast({
@@ -63,11 +84,14 @@ const ResponseForm = () => {
 
     const payload = {
       formId: form._id,
-      responses: Object.entries(responses).map(([questionId, responseValue]) => ({
-        questionId,
-        responseValue,
-      })),
+      responses: Object.entries(responses).map(
+        ([questionId, responseValue]) => ({
+          questionId,
+          responseValue,
+        })
+      ),
       ...(form.category === "Quiz" && { username, email }),
+      recaptchatoken:recaptchaToken,
     };
 
     try {
@@ -86,11 +110,13 @@ const ResponseForm = () => {
       router.push("/thank-you");
     } catch (error: any) {
       const errorMessage =
-        error?.response?.data?.error || "Something went wrong. Please try again.";
+        error?.response?.data?.error ||
+        "Something went wrong. Please try again.";
 
       if (
         error?.response?.status === 400 &&
-        errorMessage === "This email has already submitted a response for this quiz."
+        errorMessage ===
+          "This email has already submitted a response for this quiz."
       ) {
         toast({
           title: "Already Submitted",
@@ -168,7 +194,9 @@ const ResponseForm = () => {
             {form.category === "Quiz" && (
               <motion.div variants={itemVariants} className="space-y-6">
                 <div>
-                  <Label className="block text-lg text-gray-200 mb-1">Your Name</Label>
+                  <Label className="block text-lg text-gray-200 mb-1">
+                    Your Name
+                  </Label>
                   <Input
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
@@ -178,7 +206,9 @@ const ResponseForm = () => {
                   />
                 </div>
                 <div>
-                  <Label className="block text-lg text-gray-200 mb-1">Your Email</Label>
+                  <Label className="block text-lg text-gray-200 mb-1">
+                    Your Email
+                  </Label>
                   <Input
                     type="email"
                     value={email}
@@ -256,7 +286,9 @@ const ResponseForm = () => {
                           onCheckedChange={(checked) => {
                             const optText = opt.text || opt;
                             setResponses((prev) => {
-                              const current: string[] = Array.isArray(prev[q._id])
+                              const current: string[] = Array.isArray(
+                                prev[q._id]
+                              )
                                 ? (prev[q._id] as string[])
                                 : prev[q._id]
                                 ? [prev[q._id] as string]
@@ -278,6 +310,17 @@ const ResponseForm = () => {
                 )}
               </motion.div>
             ))}
+
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={
+                process.env.NODE_ENV === "production"
+                  ? process.env.NEXT_PUBLIC_RECAPTCHA_PROD_SITE_KEY!
+                  : process.env.NEXT_PUBLIC_RECAPTCHA_DEV_SITE_KEY!
+              } // Dev key
+              onChange={(token) => setRecaptchaToken(token)}
+              className="my-4"
+            />
 
             <Button
               type="submit"

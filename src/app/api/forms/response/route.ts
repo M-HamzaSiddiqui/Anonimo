@@ -3,15 +3,34 @@ import dbConnect from "@/lib/dbConnect";
 import ResponseModel from "@/model/Response.model";
 import { FormModel } from "@/model/Form.model";
 import mongoose from "mongoose";
+import { verifyRecaptchaToken } from "@/lib/reCaptcha";
 
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
 
-    const { formId, responses } = await req.json();
+    const { formId, responses, recaptchatoken } = await req.json();
 
     if (!formId || !responses || !Array.isArray(responses)) {
-      return NextResponse.json({ error: "Invalid Request Data" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid Request Data" },
+        { status: 400 }
+      );
+    }
+
+    if (!recaptchatoken) {
+      return NextResponse.json(
+        { error: "Missing reCAPTCHA token" },
+        { status: 400 }
+      );
+    }
+
+    const isHuman = await verifyRecaptchaToken(recaptchatoken);
+    if (!isHuman) {
+      return NextResponse.json(
+        { error: "Failed recaptcha verfication" },
+        { status: 400 }
+      );
     }
 
     const form = await FormModel.findById(formId);
@@ -35,8 +54,7 @@ export async function POST(req: NextRequest) {
         const marks = question.marks || 1;
 
         let isCorrect = false;
-        if (userAnswer === correctAnswer) 
-          isCorrect = true;
+        if (userAnswer === correctAnswer) isCorrect = true;
 
         if (isCorrect) score += marks;
 
@@ -55,17 +73,23 @@ export async function POST(req: NextRequest) {
     const savedResponse = await ResponseModel.create({
       formId: new mongoose.Types.ObjectId(formId),
       responses: updatedResponses,
-      totalScore: form.category === "Quiz" ? score : undefined,
+      totalScore: form.category === "Quiz" ? score : -1,
     });
 
     if (form.category === "Quiz") {
-      const maxScore = form.questions.reduce((sum: number, q: any) => sum + (q.marks || 1), 0);
+      const maxScore = form.questions.reduce(
+        (sum: number, q: any) => sum + (q.marks || 1),
+        0
+      );
       return NextResponse.json({ message: "Response saved", score, maxScore });
     }
 
     return NextResponse.json({ message: "Response saved" });
   } catch (error) {
     console.error("Error submitting form:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

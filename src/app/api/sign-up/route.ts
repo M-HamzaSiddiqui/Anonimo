@@ -38,6 +38,7 @@ export async function POST(request: Request) {
 
     const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
 
+    console.log("existingUserByEmail", existingUserByEmail);
     if (existingUserByEmail) {
       if (existingUserByEmail.isVerified) {
         return Response.json(
@@ -83,6 +84,8 @@ export async function POST(request: Request) {
     console.log(emailResponse);
 
     if (!emailResponse.success) {
+      console.log("Error sending email", emailResponse);
+      // If email sending fails, we can still return a success response to the us
       return Response.json(
         {
           success: false,

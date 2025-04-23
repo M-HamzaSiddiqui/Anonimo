@@ -41,17 +41,13 @@ const SignInComponent = () => {
         password: data.password,
       });
       setIsSubmitting(false);
-      console.log(result?.error);
       if (result?.error) {
-        console.log("hello inside if");
         toast({
           title: "Unable to login",
-          description: "Wrong username or password",
+          description: result?.error,
           variant: "destructive",
         });
-        console.log("after toast");
       }
-      console.log(result?.url);
       if (result?.url) {
         router.replace("/dashboard");
       }
