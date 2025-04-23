@@ -1,17 +1,29 @@
 import { RateLimiterRedis } from "rate-limiter-flexible";
-import { redis } from "./redis";
+import { redis, connectRedis } from "./redis";
 
-export const loginLimiter = new RateLimiterRedis({
-  storeClient: redis,
-  keyPrefix: "login_fail_ip",
-  points: 3, //
-  duration: 300,
-  blockDuration: 3600,
-});
+const isProd = process.env.NODE_ENV === 'production';
+const prefix = isProd ? 'prod_login_fail_ip' : 'dev_login_fail_ip';
+
+let loginLimiter: RateLimiterRedis | null = null;
+
+export const getLimiter = async () => {
+  await connectRedis();
+  if (!loginLimiter) {
+    loginLimiter = new RateLimiterRedis({
+      storeClient: redis,
+      keyPrefix: prefix,
+      points: 3,
+      duration: 300,
+      blockDuration: 3600,
+    });
+  }
+  return loginLimiter;
+};
 
 export async function rateLimitter(ip: string) {
   try {
-    await loginLimiter.consume(ip, 1);
+    const limiter = await getLimiter()
+    await limiter.consume(ip, 1)
     return { success: true };
   } catch (error) {
     return { success: false };
