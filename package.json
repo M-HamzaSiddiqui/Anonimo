@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "start:prod": "cross-env NODE_ENV=production next start"
   },
   "dependencies": {
     "@google/generative-ai": "^0.8.0",
@@ -67,6 +68,7 @@
     "@types/react-dom": "^18",
     "@types/react-google-recaptcha": "^2.1.9",
     "autoprefixer": "^10.0.1",
+    "cross-env": "^7.0.3",
     "eslint": "^8",
     "eslint-config-next": "14.1.4",
     "postcss": "^8",
