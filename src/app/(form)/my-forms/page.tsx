@@ -245,7 +245,7 @@ const MyForms = () => {
                 </CardHeader>
 
                 <CardFooter className="flex justify-between mt-8">
-                  <Link href={`/forms/form-analytics/${form.slug}`}>
+                  <Link href={form.category === "Quiz" ? `/forms/form-analytics/quiz-form-analytics/${form._id}`: `/forms/form-analytics/${form.slug}`}>
                     <Button className="bg-purple-600 hover:bg-purple-700 text-white">
                       <BarChart2 className="h-4 w-4 mr-1" /> Analytics
                     </Button>

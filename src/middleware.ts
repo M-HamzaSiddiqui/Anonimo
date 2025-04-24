@@ -27,7 +27,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // Require authentication for protected routes
-  if (!token && (url.pathname.startsWith("/dashboard") || url.pathname.startsWith("/forms"))) {
+  if (!token && (
+    url.pathname.startsWith("/dashboard") ||
+    url.pathname.startsWith("/forms") ||
+    url.pathname === "/create-form"
+  ))  {
     return NextResponse.redirect(new URL("/sign-in", request.url));
   }
 
@@ -43,5 +47,6 @@ export const config = {
     "/verify/:path*",
     "/dashboard/:path*",
     "/forms/:path*", // Protect forms by default
+    "/create-form"
   ],
 };

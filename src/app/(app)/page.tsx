@@ -115,9 +115,9 @@ const Home = () => {
                   Create Your Form <ChevronRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Link href="/features">
+              <Link href="/AboutUs">
                 <Button variant="outline" className="px-8 py-6 bg-gray-800/50 hover:bg-gray-700/50 text-lg border border-gray-700 rounded-lg">
-                  Explore Features
+                  About Us
                 </Button>
               </Link>
             </div>

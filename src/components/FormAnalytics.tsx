@@ -16,20 +16,17 @@ interface FormAnalyticsProps {
 }
 
 const FormAnalytics: React.FC<FormAnalyticsProps> = ({ slug }) => {
-  console.log("slug received in FormAnalytics:", slug); // Debugging 
   const [form, setForm] = useState<Form | null>(null);
   const [loading, setLoading] = useState(true);
-  console.log("slug in fa ", slug)
 
   useEffect(() => {
-    console.log("🔄 useEffect triggered with slug:", slug);
     if (!slug) {
-      console.log("❌ No slug provided, exiting useEffect.");
       return;
     }
   
     const fetchFormDetails = async () => {
       try {
+        console.log(slug)
         const { data } = await axios.get(`/api/forms/${slug}`);
         console.log("API Response:", data.form); // Debug API response
         setForm(data.form); // Ensure 'data' matches { _id, title, category }
